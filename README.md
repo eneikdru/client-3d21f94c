@@ -50,6 +50,12 @@ It expires in 24 hours; logout revokes all tokens for that identity. OAuth token
 are never returned to the agent. The booking API accepts only personal Bearer
 tokens, not browser cookies. Interactive docs: `/docs`; OpenAPI: `/openapi.json`.
 
+The repository's `openapi.json` is generated from the application. Regenerate it
+with `python export_openapi.py` after API changes. A regression test compares it
+with the runtime schema, including the required `Idempotency-Key` header.
+For a remote agent, configure the deployed HTTPS base URL in its connector;
+this contract does not provision a Meta AI integration or a hosted server.
+
 1. `GET /api/masters` and `/api/masters/{id}/services` select a master/service.
 2. `GET /api/masters/{id}/slots?service_id=haircut&day=2026-11-01` lists UTC
    epoch seconds on the requested **UTC day**, at 15-minute intervals anchored

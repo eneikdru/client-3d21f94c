@@ -1,20 +1,23 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Client 3d21f94c Booking Engine API",
-    "version": "1.0.0",
-    "description": "High-reliability transactional booking engine adhering to Dmitry Efremov Architectural Standards."
+    "title": "Master Booking Agent API",
+    "version": "1.0.0"
   },
   "paths": {
     "/": {
       "get": {
-        "summary": "Home Page",
-        "description": "Serves the interactive HTML booking and authentication facade.",
+        "summary": "Home",
+        "operationId": "home__get",
         "responses": {
           "200": {
-            "description": "HTML web page",
+            "description": "Successful Response",
             "content": {
-              "text/html": {}
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
             }
           }
         }
@@ -22,48 +25,112 @@
     },
     "/auth/{provider}": {
       "get": {
-        "summary": "OAuth Login Redirect",
+        "summary": "Login",
+        "operationId": "login_auth__provider__get",
         "parameters": [
           {
             "name": "provider",
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string",
               "enum": [
                 "google",
                 "facebook"
-              ]
+              ],
+              "type": "string",
+              "title": "Provider"
             }
           }
         ],
         "responses": {
-          "307": {
-            "description": "Redirects to OAuth provider"
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/{provider}/callback": {
+      "get": {
+        "summary": "Callback",
+        "operationId": "callback_auth__provider__callback_get",
+        "parameters": [
+          {
+            "name": "provider",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "google",
+                "facebook"
+              ],
+              "type": "string",
+              "title": "Provider"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
         }
       }
     },
     "/auth/agent-token": {
       "post": {
-        "summary": "Issue Personal Agent Bearer Token",
-        "description": "Generates a 24-hour Bearer token for LLM agents or headless automation.",
+        "summary": "Issue Token",
+        "operationId": "issue_token_auth_agent_token_post",
         "responses": {
           "200": {
-            "description": "Token issued",
+            "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "token": {
-                      "type": "string"
-                    },
-                    "expires_in": {
-                      "type": "integer"
-                    }
-                  }
-                }
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "summary": "Logout",
+        "operationId": "logout_auth_logout_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
               }
             }
           }
@@ -72,26 +139,14 @@
     },
     "/api/masters": {
       "get": {
-        "summary": "List Available Masters",
+        "summary": "Masters",
+        "operationId": "masters_api_masters_get",
         "responses": {
           "200": {
-            "description": "List of masters",
+            "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "master_id": {
-                        "type": "string"
-                      },
-                      "name": {
-                        "type": "string"
-                      }
-                    }
-                  }
-                }
+                "schema": {}
               }
             }
           }
@@ -100,44 +155,34 @@
     },
     "/api/masters/{master_id}/services": {
       "get": {
-        "summary": "List Services for Master",
+        "summary": "Services",
+        "operationId": "services_api_masters__master_id__services_get",
         "parameters": [
           {
             "name": "master_id",
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "title": "Master Id"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "List of services with durations and buffer times",
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "service_id": {
-                        "type": "string"
-                      },
-                      "master_id": {
-                        "type": "string"
-                      },
-                      "name": {
-                        "type": "string"
-                      },
-                      "duration_seconds": {
-                        "type": "integer"
-                      },
-                      "buffer_seconds": {
-                        "type": "integer"
-                      }
-                    }
-                  }
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -147,14 +192,16 @@
     },
     "/api/masters/{master_id}/slots": {
       "get": {
-        "summary": "Get Available Time Slots",
+        "summary": "Slots",
+        "operationId": "slots_api_masters__master_id__slots_get",
         "parameters": [
           {
             "name": "master_id",
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "title": "Master Id"
             }
           },
           {
@@ -162,7 +209,8 @@
             "in": "query",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "title": "Service Id"
             }
           },
           {
@@ -171,21 +219,25 @@
             "required": true,
             "schema": {
               "type": "string",
-              "example": "2026-10-27"
+              "title": "Day"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Available slot timestamps",
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "string",
-                    "format": "date-time"
-                  }
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -194,27 +246,26 @@
       }
     },
     "/api/bookings": {
-      "get": {
-        "summary": "List Client Bookings",
+      "post": {
+        "summary": "Book",
+        "operationId": "book_api_bookings_post",
         "security": [
           {
-            "bearerAuth": []
+            "HTTPBearer": []
           }
         ],
-        "responses": {
-          "200": {
-            "description": "User appointments list",
-            "content": {
-              "application/json": {}
-            }
-          }
-        }
-      },
-      "post": {
-        "summary": "Create Atomic Appointment Reservation",
-        "security": [
+        "parameters": [
           {
-            "bearerAuth": []
+            "name": "idempotency-key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9._:-]+$",
+              "title": "Idempotency-Key"
+            }
           }
         ],
         "requestBody": {
@@ -222,67 +273,182 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "required": [
-                  "master_id",
-                  "service_id",
-                  "start"
-                ],
-                "properties": {
-                  "master_id": {
-                    "type": "string"
-                  },
-                  "service_id": {
-                    "type": "string"
-                  },
-                  "start": {
-                    "type": "string",
-                    "format": "date-time"
-                  }
-                }
+                "$ref": "#/components/schemas/BookingInput"
               }
             }
           }
         },
         "responses": {
           "201": {
-            "description": "Booking confirmed"
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
           },
-          "409": {
-            "description": "Conflict: Slot already booked or overlapping"
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "Bookings",
+        "operationId": "bookings_api_bookings_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
           }
         }
       }
     },
     "/api/bookings/{booking_id}/cancel": {
       "post": {
-        "summary": "Cancel Appointment (Idempotent)",
+        "summary": "Cancel",
+        "operationId": "cancel_api_bookings__booking_id__cancel_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "parameters": [
           {
             "name": "booking_id",
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "title": "Booking Id"
             }
-          }
-        ],
-        "security": [
-          {
-            "bearerAuth": []
           }
         ],
         "responses": {
           "200": {
-            "description": "Booking successfully cancelled"
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
         }
       }
     }
   },
   "components": {
+    "schemas": {
+      "BookingInput": {
+        "properties": {
+          "master_id": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Master Id"
+          },
+          "service_id": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Service Id"
+          },
+          "start": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Start"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "master_id",
+          "service_id",
+          "start"
+        ],
+        "title": "BookingInput"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    },
     "securitySchemes": {
-      "bearerAuth": {
+      "HTTPBearer": {
         "type": "http",
         "scheme": "bearer"
       }

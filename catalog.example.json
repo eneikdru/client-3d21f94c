@@ -1,0 +1,5 @@
+{
+  "masters": [{"id": "anna", "name": "Анна"}],
+  "services": [{"id": "haircut", "master_id": "anna", "name": "Стрижка", "duration": 3600, "buffer": 900}],
+  "availability": [{"master_id": "anna", "start": "2026-11-01T09:00:00+04:00", "end": "2026-11-01T18:00:00+04:00"}]
+}

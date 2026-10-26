@@ -1,0 +1,291 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Client 3d21f94c Booking Engine API",
+    "version": "1.0.0",
+    "description": "High-reliability transactional booking engine adhering to Dmitry Efremov Architectural Standards."
+  },
+  "paths": {
+    "/": {
+      "get": {
+        "summary": "Home Page",
+        "description": "Serves the interactive HTML booking and authentication facade.",
+        "responses": {
+          "200": {
+            "description": "HTML web page",
+            "content": {
+              "text/html": {}
+            }
+          }
+        }
+      }
+    },
+    "/auth/{provider}": {
+      "get": {
+        "summary": "OAuth Login Redirect",
+        "parameters": [
+          {
+            "name": "provider",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "google",
+                "facebook"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "307": {
+            "description": "Redirects to OAuth provider"
+          }
+        }
+      }
+    },
+    "/auth/agent-token": {
+      "post": {
+        "summary": "Issue Personal Agent Bearer Token",
+        "description": "Generates a 24-hour Bearer token for LLM agents or headless automation.",
+        "responses": {
+          "200": {
+            "description": "Token issued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "token": {
+                      "type": "string"
+                    },
+                    "expires_in": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/masters": {
+      "get": {
+        "summary": "List Available Masters",
+        "responses": {
+          "200": {
+            "description": "List of masters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "master_id": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/masters/{master_id}/services": {
+      "get": {
+        "summary": "List Services for Master",
+        "parameters": [
+          {
+            "name": "master_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of services with durations and buffer times",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "service_id": {
+                        "type": "string"
+                      },
+                      "master_id": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "duration_seconds": {
+                        "type": "integer"
+                      },
+                      "buffer_seconds": {
+                        "type": "integer"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/masters/{master_id}/slots": {
+      "get": {
+        "summary": "Get Available Time Slots",
+        "parameters": [
+          {
+            "name": "master_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "service_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "day",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "2026-10-27"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Available slot timestamps",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bookings": {
+      "get": {
+        "summary": "List Client Bookings",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User appointments list",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create Atomic Appointment Reservation",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "master_id",
+                  "service_id",
+                  "start"
+                ],
+                "properties": {
+                  "master_id": {
+                    "type": "string"
+                  },
+                  "service_id": {
+                    "type": "string"
+                  },
+                  "start": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Booking confirmed"
+          },
+          "409": {
+            "description": "Conflict: Slot already booked or overlapping"
+          }
+        }
+      }
+    },
+    "/api/bookings/{booking_id}/cancel": {
+      "post": {
+        "summary": "Cancel Appointment (Idempotent)",
+        "parameters": [
+          {
+            "name": "booking_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Booking successfully cancelled"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  }
+}

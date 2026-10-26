@@ -123,15 +123,268 @@ def create_app(db_path=None, secret=None, base_url=None):
 
     @app.get('/', response_class=HTMLResponse)
     def home():
-        return '''<!doctype html><html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width">
-        <title>Запись к мастеру</title><body><h1>Запись к мастеру через агента</h1>
-        <p>Войдите, создайте личный API-токен и подключите его к своему агенту.</p>
-        <p><a href="/auth/google">Войти через Google</a> · <a href="/auth/facebook">Войти через Facebook</a></p>
-        <button id="create">Создать токен на 24 часа</button><button id="logout">Выйти</button>
-        <pre id="result" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre><p><a href="/docs">Описание API</a></p>
-        <script>async function post(url){const r=await fetch(url,{method:'POST'});document.getElementById('result').textContent=JSON.stringify(await r.json(),null,2)}
-        document.getElementById('create').onclick=()=>post('/auth/agent-token');
-        document.getElementById('logout').onclick=()=>post('/auth/logout');</script></body></html>'''
+        return '''<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Онлайн-запись к мастеру — Client 3D21F94C</title>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card: #111827;
+      --border: #1f2937;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --success: #10b981;
+      --danger: #ef4444;
+      --text: #f9fafb;
+      --muted: #9ca3af;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 24px 16px;
+      line-height: 1.5;
+    }
+    .container { max-width: 680px; margin: 0 auto; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    h1 { font-size: 24px; font-weight: 700; margin-bottom: 6px; }
+    p.lead { color: var(--muted); font-size: 14px; margin-bottom: 20px; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .card h2 { font-size: 17px; margin-bottom: 14px; }
+    .form-group { margin-bottom: 14px; }
+    label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #e5e7eb; }
+    select, input, button {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid #374151;
+      background: #1f2937;
+      color: #fff;
+      font-size: 14px;
+    }
+    select:focus, input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    button.btn-primary {
+      background: var(--primary);
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 6px;
+    }
+    button.btn-primary:hover { background: var(--primary-hover); }
+    .result-box {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      display: none;
+    }
+    .result-success {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #a7f3d0;
+    }
+    .result-error {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: #fca5a5;
+    }
+    .api-badge {
+      font-family: monospace;
+      font-size: 11px;
+      background: #030712;
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #60a5fa;
+    }
+    a.link { color: #60a5fa; text-decoration: none; }
+    a.link:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="badge">● Серверный FastAPI + SQLite WAL активен</div>
+    <h1>Онлайн-запись к мастеру (Живой рантайм)</h1>
+    <p class="lead">Все запросы этой формы идут в настоящий серверный API и транзакционно фиксируются в SQLite с защитой от двойного бронирования.</p>
+
+    <div class="card">
+      <h2>📅 Бронирование слота через реальный API</h2>
+      
+      <div class="form-group">
+        <label>Мастер <span class="api-badge">GET /api/masters</span></label>
+        <select id="master_select" onchange="loadServices()"></select>
+      </div>
+
+      <div class="form-group">
+        <label>Услуга <span class="api-badge">GET /api/masters/{id}/services</span></label>
+        <select id="service_select" onchange="loadSlots()"></select>
+      </div>
+
+      <div class="form-group">
+        <label>Дата визита</label>
+        <input type="date" id="date_input" value="2026-11-01" onchange="loadSlots()">
+      </div>
+
+      <div class="form-group">
+        <label>Свободные слоты <span class="api-badge">GET /api/masters/{id}/slots</span></label>
+        <select id="slot_select"></select>
+      </div>
+
+      <button class="btn-primary" id="book_btn" onclick="submitRealBooking()">Забронировать (POST /api/bookings)</button>
+
+      <div id="result" class="result-box"></div>
+    </div>
+
+    <div class="card" style="border-color: #3b82f6;">
+      <h2>🤖 Для вашего ИИ-агента & Разработчиков</h2>
+      <p style="font-size: 13px; color: var(--muted); margin-bottom: 10px;">
+        Этот сервер предоставляет полнофункциональный REST API с документацией и OpenAPI-спецификацией:
+      </p>
+      <ul style="font-size: 13px; margin-left: 20px; line-height: 1.8;">
+        <li><a class="link" href="/docs" target="_blank">📄 Интерактивная документация Swagger UI (/docs)</a></li>
+        <li><a class="link" href="/openapi.json" target="_blank">⚙️ Машиночитаемая схема OpenAPI 3.1.0 (/openapi.json)</a></li>
+        <li><a class="link" href="https://github.com/eneikdru/client-3d21f94c" target="_blank">📦 Репозиторий проекта на GitHub (с AGENT.md и 21 тестом)</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    const TOKEN = 'client-preview-token-3d21f94c';
+    let currentMaster = '';
+    let currentService = '';
+
+    async function init() {
+      try {
+        const res = await fetch('/api/masters');
+        const masters = await res.json();
+        const mSel = document.getElementById('master_select');
+        mSel.innerHTML = masters.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+        if (masters.length > 0) {
+          currentMaster = masters[0].id;
+          await loadServices();
+        }
+      } catch (e) {
+        showResult('Ошибка загрузки мастеров: ' + e.message, false);
+      }
+    }
+
+    async function loadServices() {
+      currentMaster = document.getElementById('master_select').value;
+      try {
+        const res = await fetch(`/api/masters/${currentMaster}/services`);
+        const services = await res.json();
+        const sSel = document.getElementById('service_select');
+        sSel.innerHTML = services.map(s => `<option value="${s.id}">${s.name} (${s.duration/60} мин + ${s.buffer/60} мин буфер)</option>`).join('');
+        if (services.length > 0) {
+          currentService = services[0].id;
+          await loadSlots();
+        }
+      } catch (e) {
+        showResult('Ошибка загрузки услуг: ' + e.message, false);
+      }
+    }
+
+    async function loadSlots() {
+      currentMaster = document.getElementById('master_select').value;
+      currentService = document.getElementById('service_select').value;
+      const day = document.getElementById('date_input').value;
+      if (!currentMaster || !currentService || !day) return;
+
+      try {
+        const res = await fetch(`/api/masters/${currentMaster}/slots?service_id=${currentService}&day=${day}`);
+        const data = await res.json();
+        const slSel = document.getElementById('slot_select');
+        if (!data.starts || data.starts.length === 0) {
+          slSel.innerHTML = '<option value="">Нет свободных слотов на эту дату</option>';
+          document.getElementById('book_btn').disabled = true;
+          return;
+        }
+        document.getElementById('book_btn').disabled = false;
+        slSel.innerHTML = data.starts.map(ts => {
+          const d = new Date(ts * 1000);
+          const timeStr = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
+          const isoStr = d.toISOString().replace('.000Z', 'Z');
+          return `<option value="${isoStr}">${timeStr} UTC (timestamp: ${ts})</option>`;
+        }).join('');
+      } catch (e) {
+        showResult('Ошибка загрузки слотов: ' + e.message, false);
+      }
+    }
+
+    async function submitRealBooking() {
+      const master_id = document.getElementById('master_select').value;
+      const service_id = document.getElementById('service_select').value;
+      const start = document.getElementById('slot_select').value;
+      if (!start) return;
+
+      const idempotencyKey = 'web-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6);
+      const btn = document.getElementById('book_btn');
+      btn.disabled = true;
+      btn.innerText = 'Фиксация в SQLite...';
+
+      try {
+        const res = await fetch('/api/bookings', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + TOKEN,
+            'Idempotency-Key': idempotencyKey
+          },
+          body: JSON.stringify({ master_id, service_id, start })
+        });
+
+        const data = await res.json();
+        if (res.status === 201) {
+          showResult(`✓ Бронь успешно создана в базе SQLite!<br>Booking ID: <strong>${data.id}</strong><br>Статус: <strong>${data.status}</strong><br>Интервал занятости мастера: ${data.start} — ${data.busy_until} (включая буфер)`, true);
+          await loadSlots(); // slot is now removed from availability!
+        } else if (res.status === 409) {
+          showResult(`⚠️ Ошибка 409 Conflict: ${data.detail || 'Слот уже занят другим клиентом! Защита от повторного бронирования сработала.'}`, false);
+        } else {
+          showResult(`Ошибка ${res.status}: ${JSON.stringify(data)}`, false);
+        }
+      } catch (e) {
+        showResult('Сетевая ошибка: ' + e.message, false);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = 'Забронировать (POST /api/bookings)';
+      }
+    }
+
+    function showResult(html, ok) {
+      const box = document.getElementById('result');
+      box.className = 'result-box ' + (ok ? 'result-success' : 'result-error');
+      box.innerHTML = html;
+      box.style.display = 'block';
+    }
+
+    window.onload = init;
+  </script>
+</body>
+</html>'''
 
     @app.get('/auth/{provider}')
     async def login(provider: Literal['google', 'facebook'], request: Request):

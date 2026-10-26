@@ -211,3 +211,25 @@ def test_openapi_auth_contract(env):
     schema = client.get('/openapi.json').json()
     assert schema['paths']['/api/bookings']['post']['security'] == [{'HTTPBearer': []}]
     assert client.get('/').status_code == 200
+
+
+def test_static_openapi_matches_runtime(env):
+    from pathlib import Path
+    _, _, _, app = env
+    schema = json.loads(Path(__file__).with_name('openapi.json').read_text(encoding='utf-8'))
+    assert schema == app.openapi()
+    parameters = schema['paths']['/api/bookings']['post']['parameters']
+    assert any(p['name'] == 'idempotency-key' and p['in'] == 'header' and p['required'] for p in parameters)
+
+
+def test_openapi_export_isolated(env, tmp_path, monkeypatch):
+    from export_openapi import export_contract
+    _, _, _, app = env
+    forbidden_db = tmp_path / 'must-not-create.db'
+    monkeypatch.setenv('BOOKING_DB', str(forbidden_db))
+    destination = tmp_path / 'export.json'
+    export_contract(destination)
+    assert json.loads(destination.read_text(encoding='utf-8')) == app.openapi()
+    assert not forbidden_db.exists()
+    with pytest.raises(OSError):
+        export_contract(tmp_path / 'missing-directory' / 'export.json')

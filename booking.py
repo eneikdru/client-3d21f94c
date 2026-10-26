@@ -67,13 +67,14 @@ class BookingInput(BaseModel):
         return value
 
 
-def create_app(db_path=None, secret=None, base_url=None):
+def create_app(db_path=None, secret=None, base_url=None, root_path=None):
     db_path = db_path or os.getenv('BOOKING_DB', 'booking.db')
     secret = secret or os.getenv('SESSION_SECRET', '')
     base_url = (base_url or os.getenv('BASE_URL', 'http://localhost:8000')).rstrip('/')
+    root_path = root_path if root_path is not None else os.getenv('ROOT_PATH', '')
     if len(secret) < 32:
         raise RuntimeError('Set SESSION_SECRET to at least 32 random characters')
-    app = FastAPI(title='Master Booking Agent API', version='1.0.0')
+    app = FastAPI(title='Master Booking Agent API', version='1.0.0', root_path=root_path)
     app.add_middleware(SessionMiddleware, secret_key=secret, https_only=base_url.startswith('https:'),
                        same_site='lax', max_age=3600)
     with connection(db_path) as db:
@@ -122,12 +123,14 @@ def create_app(db_path=None, secret=None, base_url=None):
         return user
 
     @app.get('/', response_class=HTMLResponse)
-    def home():
+    def home(request: Request):
+        base_href = app.root_path.rstrip('/') + '/' if app.root_path else '/'
         return '''<!doctype html>
 <html lang="ru">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <base href="__BASE_HREF__">
   <title>Онлайн-запись к мастеру — Client 3D21F94C</title>
   <style>
     :root {
@@ -235,12 +238,12 @@ def create_app(db_path=None, secret=None, base_url=None):
       <h2>📅 Бронирование слота через реальный API</h2>
       
       <div class="form-group">
-        <label>Мастер <span class="api-badge">GET /api/masters</span></label>
+        <label>Мастер <span class="api-badge">GET api/masters</span></label>
         <select id="master_select" onchange="loadServices()"></select>
       </div>
 
       <div class="form-group">
-        <label>Услуга <span class="api-badge">GET /api/masters/{id}/services</span></label>
+        <label>Услуга <span class="api-badge">GET api/masters/{id}/services</span></label>
         <select id="service_select" onchange="loadSlots()"></select>
       </div>
 
@@ -250,11 +253,11 @@ def create_app(db_path=None, secret=None, base_url=None):
       </div>
 
       <div class="form-group">
-        <label>Свободные слоты <span class="api-badge">GET /api/masters/{id}/slots</span></label>
+        <label>Свободные слоты <span class="api-badge">GET api/masters/{id}/slots</span></label>
         <select id="slot_select"></select>
       </div>
 
-      <button class="btn-primary" id="book_btn" onclick="submitRealBooking()">Забронировать (POST /api/bookings)</button>
+      <button class="btn-primary" id="book_btn" onclick="submitRealBooking()">Забронировать (POST api/bookings)</button>
 
       <div id="result" class="result-box"></div>
     </div>
@@ -265,8 +268,8 @@ def create_app(db_path=None, secret=None, base_url=None):
         Этот сервер предоставляет полнофункциональный REST API с документацией и OpenAPI-спецификацией:
       </p>
       <ul style="font-size: 13px; margin-left: 20px; line-height: 1.8;">
-        <li><a class="link" href="/docs" target="_blank">📄 Интерактивная документация Swagger UI (/docs)</a></li>
-        <li><a class="link" href="/openapi.json" target="_blank">⚙️ Машиночитаемая схема OpenAPI 3.1.0 (/openapi.json)</a></li>
+        <li><a class="link" href="docs" target="_blank">📄 Интерактивная документация Swagger UI (docs)</a></li>
+        <li><a class="link" href="openapi.json" target="_blank">⚙️ Машиночитаемая схема OpenAPI 3.1.0 (openapi.json)</a></li>
         <li><a class="link" href="https://github.com/eneikdru/client-3d21f94c" target="_blank">📦 Репозиторий проекта на GitHub (с AGENT.md и 21 тестом)</a></li>
       </ul>
     </div>
@@ -279,7 +282,7 @@ def create_app(db_path=None, secret=None, base_url=None):
 
     async function init() {
       try {
-        const res = await fetch('/api/masters');
+        const res = await fetch('api/masters');
         const masters = await res.json();
         const mSel = document.getElementById('master_select');
         mSel.innerHTML = masters.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
@@ -295,7 +298,7 @@ def create_app(db_path=None, secret=None, base_url=None):
     async function loadServices() {
       currentMaster = document.getElementById('master_select').value;
       try {
-        const res = await fetch(`/api/masters/${currentMaster}/services`);
+        const res = await fetch(`api/masters/${currentMaster}/services`);
         const services = await res.json();
         const sSel = document.getElementById('service_select');
         sSel.innerHTML = services.map(s => `<option value="${s.id}">${s.name} (${s.duration/60} мин + ${s.buffer/60} мин буфер)</option>`).join('');
@@ -315,7 +318,7 @@ def create_app(db_path=None, secret=None, base_url=None):
       if (!currentMaster || !currentService || !day) return;
 
       try {
-        const res = await fetch(`/api/masters/${currentMaster}/slots?service_id=${currentService}&day=${day}`);
+        const res = await fetch(`api/masters/${currentMaster}/slots?service_id=${currentService}&day=${day}`);
         const data = await res.json();
         const slSel = document.getElementById('slot_select');
         if (!data.starts || data.starts.length === 0) {
@@ -347,7 +350,7 @@ def create_app(db_path=None, secret=None, base_url=None):
       btn.innerText = 'Фиксация в SQLite...';
 
       try {
-        const res = await fetch('/api/bookings', {
+        const res = await fetch('api/bookings', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -360,7 +363,7 @@ def create_app(db_path=None, secret=None, base_url=None):
         const data = await res.json();
         if (res.status === 201) {
           showResult(`✓ Бронь успешно создана в базе SQLite!<br>Booking ID: <strong>${data.id}</strong><br>Статус: <strong>${data.status}</strong><br>Интервал занятости мастера: ${data.start} — ${data.busy_until} (включая буфер)`, true);
-          await loadSlots(); // slot is now removed from availability!
+          await loadSlots();
         } else if (res.status === 409) {
           showResult(`⚠️ Ошибка 409 Conflict: ${data.detail || 'Слот уже занят другим клиентом! Защита от повторного бронирования сработала.'}`, false);
         } else {
@@ -370,7 +373,7 @@ def create_app(db_path=None, secret=None, base_url=None):
         showResult('Сетевая ошибка: ' + e.message, false);
       } finally {
         btn.disabled = false;
-        btn.innerText = 'Забронировать (POST /api/bookings)';
+        btn.innerText = 'Забронировать (POST api/bookings)';
       }
     }
 
@@ -384,7 +387,7 @@ def create_app(db_path=None, secret=None, base_url=None):
     window.onload = init;
   </script>
 </body>
-</html>'''
+</html>'''.replace('__BASE_HREF__', base_href)
 
     @app.get('/auth/{provider}')
     async def login(provider: Literal['google', 'facebook'], request: Request):

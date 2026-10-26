@@ -6,3 +6,5 @@ __pycache__/
 .env
 gateway-payload.json
 gateway-receipt.json
+gateway-receipt-retry.json
+gateway-*.local.*

@@ -19,12 +19,12 @@ When modifying or extending this code, you **must preserve** all established inv
    - Slot reservation must use `BEGIN IMMEDIATE` transactions in SQLite.
    - Any overlapping appointment for the same master must reject immediately with `409 Conflict`.
 2. **Buffer Time Invariant:**
-   - Effective slot duration is `service.duration_seconds + service.buffer_seconds`.
+   - Effective busy interval is `[start, start + service.duration + service.buffer)`.
 3. **Secret Isolation (Zero Leaks):**
    - Never hardcode tokens, OAuth credentials, or secrets in code or git history.
    - All runtime secrets must be loaded via environment variables (`SESSION_SECRET`, `BASE_URL`).
 4. **Non-Breaking Verification:**
-   - All 19 regression and concurrency tests in `test_booking.py` must stay green.
+   - All regression and concurrency tests in `test_booking.py` must stay green.
    - New functionality must be accompanied by edge-case test suites.
 
 ---
@@ -89,4 +89,8 @@ Submit atomic patches directly to Dmitry Efremov's Architectural Bridge. The bri
 ---
 
 ## 5. Tool Use & Function Calling
-To allow an AI assistant to interact with this service (book slots, check availability, cancel), load `openapi.json` directly into your agent runtime as tool definitions.
+Generate `openapi.json` with `python export_openapi.py` after API changes.
+The regression suite checks equality with the runtime contract, including the
+required `Idempotency-Key` header for reservation requests. Configure the
+deployed base URL and personal Bearer token in an agent connector that supports
+custom HTTP tools. An OpenAPI document alone does not install a Meta AI action.
